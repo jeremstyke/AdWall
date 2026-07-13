@@ -49,6 +49,11 @@
   @media (prefers-reduced-motion: reduce){ .btn:hover{ transform:none; } }
 
   main{ max-width:1300px; margin:0 auto; padding:6px 24px 80px; }
+  .reminder{
+    text-align:center; font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.82rem;
+    background:var(--paper); border:2px dashed var(--ink); border-radius:6px; padding:8px 14px;
+    margin:4px 0 14px; opacity:0.85;
+  }
   .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:10px; }
   .toolbar .group{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .sort-toggle{
@@ -136,6 +141,7 @@
 </header>
 
 <main>
+  <p class="reminder">💡 Come back every day and vote for your favorite ads — it helps them stay on top!</p>
   <div class="toolbar">
     <div class="group">
       <label style="margin:0;font-size:0.7rem;" id="filterLabelText">Showing</label>
