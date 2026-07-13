@@ -95,6 +95,14 @@
   }
   .vbtn.voted{ background:#e2ddd0; color:rgba(0,0,0,0.35); cursor:not-allowed; }
   .vcount{ font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.78rem; min-width:20px; text-align:center; }
+  .sbtn{
+    margin-left:auto; width:24px; height:22px; border:1px solid rgba(0,0,0,0.25); background:#fff;
+    border-radius:4px; cursor:pointer; font-size:0.7rem; line-height:1; display:flex; align-items:center;
+    justify-content:center; padding:0;
+  }
+  .card.highlighted{
+    outline:3px solid var(--pin-blue); outline-offset:2px; transform:rotate(0deg) scale(1.04); z-index:3;
+  }
 
   .modal-backdrop{ position:fixed; inset:0; background:rgba(20,16,10,0.7); display:none; align-items:center; justify-content:center; padding:20px; z-index:10; }
   .modal-backdrop.open{ display:flex; }
@@ -141,7 +149,7 @@
 </header>
 
 <main>
-  <p class="reminder">💡 Come back every day and vote for your favorite ads — it helps them stay on top!</p>
+  <p class="reminder">💡 Come back every day and vote for your favorite ads — it helps them stay on top! (1 vote per ad every 24h)</p>
   <div class="toolbar">
     <div class="group">
       <label style="margin:0;font-size:0.7rem;" id="filterLabelText">Showing</label>
@@ -357,10 +365,12 @@ async function loadAds(){
         <button class="vbtn up ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="1" ${onCooldown ? 'disabled' : ''} aria-label="Upvote" title="${onCooldown ? cooldownMsg : ''}">▲</button>
         <span class="vcount" data-count-for="${ad.id}">${ad.votes ?? 0}</span>
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
+        <button class="sbtn" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
       </div>
     `;
     grid.appendChild(card);
   });
+  highlightSharedAd();
 }
 
 // Vote handling — 1 vote per ad per 24h (client-side cooldown), server increment via RPC
@@ -389,6 +399,44 @@ grid.addEventListener('click', async (e) => {
   myVotes[id] = now;
   setMyVotes(myVotes);
 });
+
+// Share handling — copies/shares a direct link to a specific ad
+grid.addEventListener('click', async (e) => {
+  const sbtn = e.target.closest('.sbtn');
+  if(!sbtn) return;
+  const id = sbtn.dataset.shareId;
+  const name = sbtn.dataset.shareName;
+  const shareUrl = `${location.origin}${location.pathname}?ad=${id}`;
+
+  if(navigator.share){
+    try{
+      await navigator.share({ title: 'AdWall', text: `Check out ${name} on AdWall`, url: shareUrl });
+    } catch(err){ /* user cancelled — ignore */ }
+    return;
+  }
+
+  try{
+    await navigator.clipboard.writeText(shareUrl);
+    const original = sbtn.textContent;
+    sbtn.textContent = '✅';
+    setTimeout(() => { sbtn.textContent = original; }, 1500);
+  } catch(err){
+    console.error(err);
+  }
+});
+
+// If the page was opened via a shared ad link (?ad=...), scroll to and highlight it
+function highlightSharedAd(){
+  const params = new URLSearchParams(location.search);
+  const sharedId = params.get('ad');
+  if(!sharedId) return;
+  const btn = grid.querySelector(`[data-share-id="${sharedId}"]`);
+  if(!btn) return;
+  const card = btn.closest('.card');
+  card.scrollIntoView({ behavior:'smooth', block:'center' });
+  card.classList.add('highlighted');
+  setTimeout(() => card.classList.remove('highlighted'), 2500);
+}
 
 // Submit form
 const form = document.getElementById('adForm');
