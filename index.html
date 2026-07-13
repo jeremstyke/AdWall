@@ -30,6 +30,8 @@
     font-family:'Anton',sans-serif; font-size:clamp(2.2rem,6vw,3.6rem);
     letter-spacing:0.5px; margin:0; line-height:0.9; transform:rotate(-1deg); display:inline-block;
   }
+  .brand h1 a{ color:var(--ink); text-decoration:none; }
+  .brand h1 a:focus-visible{ outline:3px solid var(--pin-blue); outline-offset:4px; }
   .brand p{ font-family:'Inter Tight',sans-serif; font-weight:600; margin:6px 2px 0; font-size:0.95rem; opacity:0.75; }
   .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   select{
@@ -140,7 +142,7 @@
 
 <header>
   <div class="brand">
-    <h1 id="siteTitle">THE WALL</h1>
+    <h1><a id="siteTitle" href="./index.html">THE WALL</a></h1>
     <p id="siteSub">The 100% free ad board</p>
   </div>
   <div class="controls">
