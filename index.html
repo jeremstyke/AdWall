@@ -129,6 +129,14 @@
   .status-msg{ font-size:0.82rem; font-weight:600; }
   .status-msg.err{ color:var(--pin-red); }
   .status-msg.ok{ color:#2f7a4a; }
+  .success-panel{ text-align:center; padding:6px 0 4px; }
+  .success-title{ font-family:'Anton',sans-serif; font-size:1.5rem; margin:0 0 12px; }
+  .cta-text{ font-size:0.85rem; line-height:1.5; margin:0 0 16px; opacity:0.85; }
+  .cta-btn{ display:inline-block; width:100%; text-align:center; text-decoration:none; }
+  .link-btn{
+    display:block; margin:14px auto 0; background:none; border:none; text-decoration:underline;
+    font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.82rem; color:var(--ink); cursor:pointer;
+  }
   .btn[disabled]{ opacity:0.6; cursor:not-allowed; }
   footer{
     text-align:center; padding:20px; font-size:0.75rem; opacity:0.6;
@@ -199,6 +207,13 @@
         <span class="status-msg" id="statusMsg"></span>
       </div>
     </form>
+
+    <div id="successPanel" class="success-panel" style="display:none;">
+      <p class="success-title">🎉 Your ad is live!</p>
+      <p class="cta-text">Building something for your business? <strong>Systeme.io</strong> lets you build a full sales funnel, email list, and online store — 100% free, no credit card needed.</p>
+      <a class="btn cta-btn" href="https://cutt.ly/Pyeso1Zh" target="_blank" rel="noopener sponsored">Try Systeme.io free →</a>
+      <button type="button" class="link-btn" id="postAnother">Post another ad</button>
+    </div>
   </div>
 </div>
 
@@ -306,8 +321,16 @@ document.getElementById('countryFilter').addEventListener('change', (e) => {
 
 // Modal handling
 const backdrop = document.getElementById('modalBackdrop');
-document.getElementById('openModal').onclick = () => { backdrop.classList.add('open'); };
+document.getElementById('openModal').onclick = () => {
+  form.style.display = 'block';
+  document.getElementById('successPanel').style.display = 'none';
+  backdrop.classList.add('open');
+};
 document.getElementById('closeModal').onclick = () => { backdrop.classList.remove('open'); };
+document.getElementById('postAnother').onclick = () => {
+  form.style.display = 'block';
+  document.getElementById('successPanel').style.display = 'none';
+};
 backdrop.addEventListener('click', e => { if(e.target === backdrop) backdrop.classList.remove('open'); });
 
 // File input UX
@@ -482,12 +505,13 @@ form.addEventListener('submit', async (e) => {
     });
     if(insErr) throw insErr;
 
-    statusMsg.textContent = T.ok;
-    statusMsg.className = 'status-msg ok';
+    statusMsg.textContent = '';
+    statusMsg.className = 'status-msg';
     form.reset();
     fileNameEl.textContent = '';
+    form.style.display = 'none';
+    document.getElementById('successPanel').style.display = 'block';
     await loadAds();
-    setTimeout(() => { backdrop.classList.remove('open'); statusMsg.textContent=''; }, 1000);
   } catch(err){
     console.error(err);
     statusMsg.textContent = T.errGeneric;
