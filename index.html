@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Wall — Free Ad Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --board:#c9a876; --board-dark:#b8935f; --ink:#1f1b16; --paper:#f7f3ea;
+    --pin-red:#d1453b; --pin-blue:#2f5fa8; --wood-line: rgba(0,0,0,0.08);
+    --up:#2f7a4a; --down:#b8342a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Inter',sans-serif; color:var(--ink);
+    background:
+      repeating-linear-gradient(0deg, var(--wood-line) 0 1px, transparent 1px 42px),
+      repeating-linear-gradient(90deg, var(--wood-line) 0 1px, transparent 1px 42px),
+      var(--board);
+    min-height:100vh;
+  }
+  header{
+    padding:32px 24px 20px; display:flex; justify-content:space-between;
+    align-items:flex-start; flex-wrap:wrap; gap:16px; max-width:1300px; margin:0 auto;
+  }
+  .brand h1{
+    font-family:'Anton',sans-serif; font-size:clamp(2.2rem,6vw,3.6rem);
+    letter-spacing:0.5px; margin:0; line-height:0.9; transform:rotate(-1deg); display:inline-block;
+  }
+  .brand p{ font-family:'Inter Tight',sans-serif; font-weight:600; margin:6px 2px 0; font-size:0.95rem; opacity:0.75; }
+  .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  select{
+    font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.82rem;
+    background:var(--paper); border:2px solid var(--ink); border-radius:6px;
+    padding:9px 10px; color:var(--ink); cursor:pointer;
+  }
+  select:focus-visible, .btn:focus-visible, .vbtn:focus-visible, .close:focus-visible, .file-drop:focus-visible{
+    outline:3px solid var(--pin-blue); outline-offset:2px;
+  }
+  .btn{
+    font-family:'Inter Tight',sans-serif; font-weight:700; background:var(--pin-red); color:#fff;
+    border:none; padding:12px 20px; border-radius:6px; cursor:pointer; font-size:0.95rem;
+    box-shadow:0 3px 0 rgba(0,0,0,0.25); transition:transform 0.15s ease;
+  }
+  .btn:hover{ transform:translateY(-2px); }
+  @media (prefers-reduced-motion: reduce){ .btn:hover{ transform:none; } }
+
+  main{ max-width:1300px; margin:0 auto; padding:6px 24px 80px; }
+  .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:10px; }
+  .toolbar .group{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .sort-toggle{
+    background:var(--paper); border:2px solid var(--ink); border-radius:4px; padding:5px;
+    display:flex; gap:4px; font-family:'Inter Tight',sans-serif;
+  }
+  .sort-toggle button{
+    border:none; background:transparent; font-weight:700; font-size:0.75rem; padding:5px 10px;
+    cursor:pointer; border-radius:3px; color:var(--ink);
+  }
+  .sort-toggle button[aria-pressed="true"]{ background:var(--ink); color:var(--paper); }
+
+  .empty{ text-align:center; padding:80px 20px; font-family:'Inter Tight',sans-serif; font-weight:600; opacity:0.7; }
+
+  .grid{ columns: 190px; column-gap:20px; padding-top:14px; }
+  .card{
+    position:relative; background:var(--paper); padding:10px 10px 8px; border-radius:2px;
+    box-shadow:0 8px 14px -6px rgba(0,0,0,0.35); display:block; break-inside:avoid; margin:0 0 20px;
+    transform:rotate(var(--r,-1.2deg)); transition:transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card:nth-child(3n){ --r:1.1deg; } .card:nth-child(3n+1){ --r:-1deg; } .card:nth-child(3n+2){ --r:0.5deg; }
+  .card:hover{ transform:rotate(0deg); box-shadow:0 14px 22px -6px rgba(0,0,0,0.4); z-index:2; }
+  @media (prefers-reduced-motion: reduce){ .card{ transition:none; } .card:hover{ transform:rotate(0deg); } }
+  .pin{
+    position:absolute; top:-9px; left:50%; transform:translateX(-50%); width:16px; height:16px;
+    background:var(--pin-blue); border-radius:50%; box-shadow:0 3px 4px rgba(0,0,0,0.4), inset -2px -2px 3px rgba(0,0,0,0.25);
+  }
+  .card:nth-child(4n) .pin{ background:var(--pin-red); }
+  .card a.imgwrap{ display:block; }
+  .card img{ width:100%; height:auto; max-height:190px; object-fit:cover; display:block; border:1px solid rgba(0,0,0,0.1); background:#fff; }
+  .card .name{ display:block; margin-top:8px; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.78rem; }
+  .card .country-tag{ font-size:0.65rem; opacity:0.6; margin-top:2px; display:block; font-family:'Inter Tight',sans-serif; }
+
+  .votebar{ display:flex; align-items:center; gap:6px; margin-top:8px; }
+  .vbtn{
+    width:24px; height:22px; border:1px solid rgba(0,0,0,0.25); background:#fff; border-radius:4px;
+    cursor:pointer; font-size:0.7rem; line-height:1; display:flex; align-items:center; justify-content:center;
+    color:var(--ink); padding:0;
+  }
+  .vbtn.voted{ background:#e2ddd0; color:rgba(0,0,0,0.35); cursor:not-allowed; }
+  .vcount{ font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.78rem; min-width:20px; text-align:center; }
+
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(20,16,10,0.7); display:none; align-items:center; justify-content:center; padding:20px; z-index:10; }
+  .modal-backdrop.open{ display:flex; }
+  .modal{
+    background:var(--paper); max-width:440px; width:100%; border-radius:8px; padding:28px 26px 26px;
+    position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.4); max-height:90vh; overflow-y:auto;
+  }
+  .modal h2{ font-family:'Anton',sans-serif; font-size:1.6rem; margin:0 0 4px; }
+  .modal .sub{ font-size:0.85rem; opacity:0.7; margin:0 0 20px; }
+  .close{ position:absolute; top:14px; right:14px; background:none; border:none; font-size:1.4rem; cursor:pointer; line-height:1; color:var(--ink); }
+  [dir="rtl"] .close{ right:auto; left:14px; }
+  label{ display:block; font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.8rem; margin:14px 0 6px; }
+  input[type=text], input[type=url]{
+    width:100%; padding:10px 12px; border:2px solid var(--ink); border-radius:5px;
+    font-family:'Inter',sans-serif; font-size:0.9rem; background:#fff;
+  }
+  .modal select{ width:100%; }
+  .file-drop{ border:2px dashed var(--ink); border-radius:6px; padding:16px; text-align:center; cursor:pointer; font-size:0.85rem; background:#fff; }
+  .file-drop input{ display:none; }
+  .file-name{ margin-top:6px; font-size:0.78rem; opacity:0.7; word-break:break-all; }
+  .form-actions{ margin-top:22px; display:flex; gap:10px; align-items:center; }
+  .status-msg{ font-size:0.82rem; font-weight:600; }
+  .status-msg.err{ color:var(--pin-red); }
+  .status-msg.ok{ color:#2f7a4a; }
+  .btn[disabled]{ opacity:0.6; cursor:not-allowed; }
+  footer{
+    text-align:center; padding:20px; font-size:0.75rem; opacity:0.6;
+    font-family:'Inter Tight',sans-serif; display:flex; flex-direction:column; gap:6px;
+  }
+  footer .footer-links{ opacity:1; }
+  footer .footer-links a{ color:var(--ink); text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1 id="siteTitle">THE WALL</h1>
+    <p id="siteSub">The 100% free ad board</p>
+  </div>
+  <div class="controls">
+    <button class="btn" id="openModal">+ Add my ad</button>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="group">
+      <label style="margin:0;font-size:0.7rem;" id="filterLabelText">Showing</label>
+      <select id="countryFilter" aria-label="Country filter"></select>
+    </div>
+    <div class="sort-toggle" role="group" aria-label="Sort">
+      <button id="sortTop" aria-pressed="true">Top</button>
+      <button id="sortNew" aria-pressed="false">New</button>
+    </div>
+  </div>
+  <div id="grid" class="grid"></div>
+  <p id="emptyMsg" class="empty" style="display:none;">The wall is empty for now. Be the first to pin your ad!</p>
+</main>
+
+<footer>
+  <span id="footerText">Made with ❤️ — pin your ad, free, forever.</span>
+  <span class="footer-links"><a href="./privacy.html">Privacy Policy</a> · <a href="./support.html">Support</a></span>
+</footer>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <button class="close" id="closeModal" aria-label="Close">&times;</button>
+    <h2 id="modalTitle">Pin your ad</h2>
+    <p class="sub" id="modalSub">An image, a link, that's it.</p>
+
+    <form id="adForm">
+      <label id="labelName" for="advertiserName">Name / brand (optional)</label>
+      <input type="text" id="advertiserName" maxlength="60" placeholder="My Awesome Brand">
+
+      <label id="labelFile" for="fileInput">Ad image *</label>
+      <div class="file-drop" id="fileDrop" tabindex="0">
+        <span id="fileDropText">Click to choose an image (JPG/PNG, max 2MB)</span>
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp" required>
+        <div class="file-name" id="fileName"></div>
+      </div>
+
+      <label id="labelUrl" for="targetUrl">Link to your site *</label>
+      <input type="url" id="targetUrl" required placeholder="https://...">
+
+      <label id="labelCountry" for="countrySelect">Show this ad in *</label>
+      <select id="countrySelect"></select>
+
+      <div class="form-actions">
+        <button type="submit" class="btn" id="submitBtn">Publish</button>
+        <span class="status-msg" id="statusMsg"></span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* =====================================================
+   CONFIG — remplace par tes valeurs Supabase
+===================================================== */
+const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+const BUCKET = "ads";
+/* ===================================================== */
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const grid = document.getElementById('grid');
+const emptyMsg = document.getElementById('emptyMsg');
+let sortMode = 'top';
+let countryFilterMode = 'ALL';
+
+const VOTES_KEY = 'adwall_myvotes';
+const VOTE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+function getMyVotes(){ return JSON.parse(localStorage.getItem(VOTES_KEY) || '{}'); }
+function setMyVotes(v){ localStorage.setItem(VOTES_KEY, JSON.stringify(v)); }
+
+// English-only UI strings
+const T = {
+  title:"THE WALL", sub:"The 100% free ad board", openBtn:"+ Add my ad",
+  modalTitle:"Pin your ad", modalSub:"An image, a link, that's it.",
+  labelName:"Name / brand (optional)", labelFile:"Ad image *",
+  fileDropText:"Click to choose an image (JPG/PNG, max 2MB)",
+  labelUrl:"Link to your site *", labelCountry:"Show this ad in *",
+  submit:"Publish", footer:"Made with \u2764\ufe0f \u2014 pin your ad, free, forever.",
+  empty:"The wall is empty for now. Be the first to pin your ad!",
+  errUrl:"Enter a valid link to your site.", errFile:"Choose an image first.",
+  errSize:"Image too large (max 2MB).", uploading:"Publishing...",
+  errGeneric:"Something went wrong, try again.", ok:"Published! Thanks \ud83c\udf89",
+  sortTop:"Top", sortNew:"New", filterLabel:"Showing",
+  filterAll:"\ud83c\udf0d All ads",
+  voteCooldown:"{h}h left before you can vote again."
+};
+
+// Country list for targeting
+const COUNTRIES = [
+ {code:'US',flag:'\ud83c\uddfa\ud83c\uddf8',name:'United States'},{code:'FR',flag:'\ud83c\uddeb\ud83c\uddf7',name:'France'},{code:'GB',flag:'\ud83c\uddec\ud83c\udde7',name:'United Kingdom'},
+ {code:'CA',flag:'\ud83c\udde8\ud83c\udde6',name:'Canada'},{code:'DE',flag:'\ud83c\udde9\ud83c\uddea',name:'Germany'},{code:'ES',flag:'\ud83c\uddea\ud83c\uddf8',name:'Spain'},
+ {code:'IT',flag:'\ud83c\uddee\ud83c\uddf9',name:'Italy'},{code:'PT',flag:'\ud83c\uddf5\ud83c\uddf9',name:'Portugal'},{code:'BR',flag:'\ud83c\udde7\ud83c\uddf7',name:'Brazil'},
+ {code:'MX',flag:'\ud83c\uddf2\ud83c\uddfd',name:'Mexico'},{code:'NL',flag:'\ud83c\uddf3\ud83c\uddf1',name:'Netherlands'},{code:'BE',flag:'\ud83c\udde7\ud83c\uddea',name:'Belgium'},
+ {code:'CH',flag:'\ud83c\udde8\ud83c\udded',name:'Switzerland'},{code:'AT',flag:'\ud83c\udde6\ud83c\uddf9',name:'Austria'},{code:'SE',flag:'\ud83c\uddf8\ud83c\uddea',name:'Sweden'},
+ {code:'NO',flag:'\ud83c\uddf3\ud83c\uddf4',name:'Norway'},{code:'DK',flag:'\ud83c\udde9\ud83c\uddf0',name:'Denmark'},{code:'FI',flag:'\ud83c\uddeb\ud83c\uddee',name:'Finland'},
+ {code:'PL',flag:'\ud83c\uddf5\ud83c\uddf1',name:'Poland'},{code:'RO',flag:'\ud83c\uddf7\ud83c\uddf4',name:'Romania'},{code:'GR',flag:'\ud83c\uddec\ud83c\uddf7',name:'Greece'},
+ {code:'TR',flag:'\ud83c\uddf9\ud83c\uddf7',name:'Turkey'},{code:'RU',flag:'\ud83c\uddf7\ud83c\uddfa',name:'Russia'},{code:'UA',flag:'\ud83c\uddfa\ud83c\udde6',name:'Ukraine'},
+ {code:'IN',flag:'\ud83c\uddee\ud83c\uddf3',name:'India'},{code:'CN',flag:'\ud83c\udde8\ud83c\uddf3',name:'China'},{code:'JP',flag:'\ud83c\uddef\ud83c\uddf5',name:'Japan'},
+ {code:'KR',flag:'\ud83c\uddf0\ud83c\uddf7',name:'South Korea'},{code:'TW',flag:'\ud83c\uddf9\ud83c\uddfc',name:'Taiwan'},{code:'HK',flag:'\ud83c\udded\ud83c\uddf0',name:'Hong Kong'},
+ {code:'ID',flag:'\ud83c\uddee\ud83c\udde9',name:'Indonesia'},{code:'TH',flag:'\ud83c\uddf9\ud83c\udded',name:'Thailand'},{code:'VN',flag:'\ud83c\uddfb\ud83c\uddf3',name:'Vietnam'},
+ {code:'PH',flag:'\ud83c\uddf5\ud83c\udded',name:'Philippines'},{code:'MY',flag:'\ud83c\uddf2\ud83c\uddfe',name:'Malaysia'},{code:'SG',flag:'\ud83c\uddf8\ud83c\uddec',name:'Singapore'},
+ {code:'AU',flag:'\ud83c\udde6\ud83c\uddfa',name:'Australia'},{code:'NZ',flag:'\ud83c\uddf3\ud83c\uddff',name:'New Zealand'},{code:'SA',flag:'\ud83c\uddf8\ud83c\udde6',name:'Saudi Arabia'},
+ {code:'AE',flag:'\ud83c\udde6\ud83c\uddea',name:'United Arab Emirates'},{code:'EG',flag:'\ud83c\uddea\ud83c\uddec',name:'Egypt'},{code:'ZA',flag:'\ud83c\uddff\ud83c\udde6',name:'South Africa'},
+ {code:'NG',flag:'\ud83c\uddf3\ud83c\uddec',name:'Nigeria'},{code:'AR',flag:'\ud83c\udde6\ud83c\uddf7',name:'Argentina'},{code:'CL',flag:'\ud83c\udde8\ud83c\uddf1',name:'Chile'},
+ {code:'CO',flag:'\ud83c\udde8\ud83c\uddf4',name:'Colombia'},{code:'PE',flag:'\ud83c\uddf5\ud83c\uddea',name:'Peru'},{code:'IE',flag:'\ud83c\uddee\ud83c\uddea',name:'Ireland'},
+ {code:'IL',flag:'\ud83c\uddee\ud83c\uddf1',name:'Israel'},{code:'PK',flag:'\ud83c\uddf5\ud83c\uddf0',name:'Pakistan'},{code:'BD',flag:'\ud83c\udde7\ud83c\udde9',name:'Bangladesh'},
+ {code:'CZ',flag:'\ud83c\udde8\ud83c\uddff',name:'Czech Republic'},{code:'HU',flag:'\ud83c\udded\ud83c\uddfa',name:'Hungary'}
+];
+
+function populateCountrySelects(){
+  const formOpts = `<option value="WW">\ud83c\udf10 Worldwide</option>` +
+    COUNTRIES.map(c => `<option value="${c.code}">${c.flag} ${c.name}</option>`).join('');
+  document.getElementById('countrySelect').innerHTML = formOpts;
+
+  const filterOpts = `<option value="ALL">${T.filterAll}</option>` +
+    COUNTRIES.map(c => `<option value="${c.code}">${c.flag} ${c.name}</option>`).join('');
+  const filterSel = document.getElementById('countryFilter');
+  const prev = filterSel.value || 'ALL';
+  filterSel.innerHTML = filterOpts;
+  filterSel.value = prev;
+}
+
+function applyText(){
+  document.getElementById('siteTitle').textContent = T.title;
+  document.getElementById('siteSub').textContent = T.sub;
+  document.getElementById('openModal').textContent = T.openBtn;
+  document.getElementById('modalTitle').textContent = T.modalTitle;
+  document.getElementById('modalSub').textContent = T.modalSub;
+  document.getElementById('labelName').textContent = T.labelName;
+  document.getElementById('labelFile').textContent = T.labelFile;
+  document.getElementById('fileDropText').textContent = T.fileDropText;
+  document.getElementById('labelUrl').textContent = T.labelUrl;
+  document.getElementById('labelCountry').textContent = T.labelCountry;
+  document.getElementById('submitBtn').textContent = T.submit;
+  document.getElementById('footerText').textContent = T.footer;
+  document.getElementById('sortTop').textContent = T.sortTop;
+  document.getElementById('sortNew').textContent = T.sortNew;
+  document.getElementById('filterLabelText').textContent = T.filterLabel;
+  emptyMsg.textContent = T.empty;
+  populateCountrySelects();
+}
+
+document.getElementById('sortTop').onclick = () => { sortMode='top'; setSortToggle(); loadAds(); };
+document.getElementById('sortNew').onclick = () => { sortMode='new'; setSortToggle(); loadAds(); };
+function setSortToggle(){
+  document.getElementById('sortTop').setAttribute('aria-pressed', sortMode==='top');
+  document.getElementById('sortNew').setAttribute('aria-pressed', sortMode==='new');
+}
+document.getElementById('countryFilter').addEventListener('change', (e) => {
+  countryFilterMode = e.target.value; loadAds();
+});
+
+// Modal handling
+const backdrop = document.getElementById('modalBackdrop');
+document.getElementById('openModal').onclick = () => { backdrop.classList.add('open'); };
+document.getElementById('closeModal').onclick = () => { backdrop.classList.remove('open'); };
+backdrop.addEventListener('click', e => { if(e.target === backdrop) backdrop.classList.remove('open'); });
+
+// File input UX
+const fileInput = document.getElementById('fileInput');
+const fileDrop = document.getElementById('fileDrop');
+const fileNameEl = document.getElementById('fileName');
+fileDrop.addEventListener('click', () => fileInput.click());
+fileDrop.addEventListener('keydown', e => { if(e.key==='Enter' || e.key===' ') fileInput.click(); });
+fileInput.addEventListener('change', () => { fileNameEl.textContent = fileInput.files[0] ? fileInput.files[0].name : ''; });
+
+// Load ads from Supabase, applying country filter + sort
+async function loadAds(){
+  let query = sb.from('ads').select('*').eq('status','active');
+
+  if(countryFilterMode === 'WW'){
+    query = query.eq('country','WW');
+  } else if(countryFilterMode !== 'ALL'){
+    query = query.or(`country.eq.${countryFilterMode},country.eq.WW`);
+  }
+
+  query = sortMode === 'top'
+    ? query.order('votes', { ascending:false }).order('created_at', { ascending:false })
+    : query.order('created_at', { ascending:false });
+
+  const { data, error } = await query;
+  if(error){ console.error(error); return; }
+
+  grid.innerHTML = '';
+  if(!data || data.length === 0){ emptyMsg.style.display = 'block'; return; }
+  emptyMsg.style.display = 'none';
+
+  const myVotes = getMyVotes();
+  const now = Date.now();
+  const countryLabel = (code) => {
+    if(code === 'WW') return '🌐 Worldwide';
+    const c = COUNTRIES.find(c => c.code === code);
+    return c ? `${c.flag} ${c.name}` : code;
+  };
+
+  data.forEach(ad => {
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(ad.image_path);
+    const lastVote = myVotes[ad.id];
+    const onCooldown = lastVote && (now - lastVote) < VOTE_COOLDOWN_MS;
+    const hoursLeft = onCooldown ? Math.ceil((VOTE_COOLDOWN_MS - (now - lastVote)) / 3600000) : 0;
+    const cooldownMsg = T.voteCooldown.replace('{h}', hoursLeft);
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="pin"></div>
+      <a class="imgwrap" href="${ad.target_url}" target="_blank" rel="noopener noreferrer sponsored">
+        <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
+      </a>
+      ${ad.advertiser_name ? `<span class="name">${ad.advertiser_name}</span>` : ''}
+      <span class="country-tag">${countryLabel(ad.country)}</span>
+      <div class="votebar">
+        <button class="vbtn up ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="1" ${onCooldown ? 'disabled' : ''} aria-label="Upvote" title="${onCooldown ? cooldownMsg : ''}">▲</button>
+        <span class="vcount" data-count-for="${ad.id}">${ad.votes ?? 0}</span>
+        <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// Vote handling — 1 vote per ad per 24h (client-side cooldown), server increment via RPC
+grid.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.vbtn');
+  if(!btn || btn.disabled) return;
+  const id = btn.dataset.id;
+  const dir = parseInt(btn.dataset.dir, 10);
+
+  const myVotes = getMyVotes();
+  const now = Date.now();
+  if(myVotes[id] && (now - myVotes[id]) < VOTE_COOLDOWN_MS) return;
+
+  const card = btn.closest('.card');
+  const countEl = card.querySelector(`[data-count-for="${id}"]`);
+  countEl.textContent = parseInt(countEl.textContent, 10) + dir;
+  card.querySelectorAll('.vbtn').forEach(b => { b.disabled = true; b.classList.add('voted'); });
+
+  const { error } = await sb.rpc('increment_votes', { p_ad_id: id, p_delta: dir });
+  if(error){
+    console.error(error);
+    countEl.textContent = parseInt(countEl.textContent, 10) - dir;
+    card.querySelectorAll('.vbtn').forEach(b => { b.disabled = false; b.classList.remove('voted'); });
+    return;
+  }
+  myVotes[id] = now;
+  setMyVotes(myVotes);
+});
+
+// Submit form
+const form = document.getElementById('adForm');
+const statusMsg = document.getElementById('statusMsg');
+const submitBtn = document.getElementById('submitBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  statusMsg.className = 'status-msg';
+  statusMsg.textContent = '';
+
+  const targetUrl = document.getElementById('targetUrl').value.trim();
+  const name = document.getElementById('advertiserName').value.trim();
+  const country = document.getElementById('countrySelect').value;
+  const file = fileInput.files[0];
+
+  try{ new URL(targetUrl); } catch{
+    statusMsg.textContent = T.errUrl; statusMsg.className='status-msg err'; return;
+  }
+  if(!file){ statusMsg.textContent = T.errFile; statusMsg.className='status-msg err'; return; }
+  if(file.size > 2*1024*1024){ statusMsg.textContent = T.errSize; statusMsg.className='status-msg err'; return; }
+
+  submitBtn.disabled = true;
+  statusMsg.textContent = T.uploading;
+  statusMsg.className = 'status-msg';
+
+  try{
+    const ext = file.name.split('.').pop();
+    const path = `${crypto.randomUUID()}.${ext}`;
+
+    const { error: upErr } = await sb.storage.from(BUCKET).upload(path, file, { cacheControl:'3600', upsert:false });
+    if(upErr) throw upErr;
+
+    const { error: insErr } = await sb.from('ads').insert({
+      advertiser_name: name || null,
+      image_path: path,
+      target_url: targetUrl,
+      country: country,
+      status: 'active',
+      votes: 0
+    });
+    if(insErr) throw insErr;
+
+    statusMsg.textContent = T.ok;
+    statusMsg.className = 'status-msg ok';
+    form.reset();
+    fileNameEl.textContent = '';
+    await loadAds();
+    setTimeout(() => { backdrop.classList.remove('open'); statusMsg.textContent=''; }, 1000);
+  } catch(err){
+    console.error(err);
+    statusMsg.textContent = T.errGeneric;
+    statusMsg.className = 'status-msg err';
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+setSortToggle();
+applyText();
+loadAds();
+</script>
+</body>
+</html>

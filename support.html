@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support — THE WALL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --board:#c9a876; --ink:#1f1b16; --paper:#f7f3ea; --pin-blue:#2f5fa8; --pin-red:#d1453b; --wood-line: rgba(0,0,0,0.08); }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Inter',sans-serif; color:var(--ink);
+    background:
+      repeating-linear-gradient(0deg, var(--wood-line) 0 1px, transparent 1px 42px),
+      repeating-linear-gradient(90deg, var(--wood-line) 0 1px, transparent 1px 42px),
+      var(--board);
+    min-height:100vh;
+  }
+  .sheet{
+    max-width:640px; margin:48px auto; background:var(--paper); padding:40px 36px;
+    border-radius:2px; box-shadow:0 12px 24px -8px rgba(0,0,0,0.35); transform:rotate(0.4deg);
+  }
+  h1{ font-family:'Anton',sans-serif; font-size:2.2rem; margin:0 0 20px; }
+  h2{ font-family:'Inter Tight',sans-serif; font-size:1.05rem; margin:24px 0 8px; }
+  p, li{ font-size:0.95rem; line-height:1.6; }
+  a.mail{
+    display:inline-block; margin-top:6px; font-family:'Inter Tight',sans-serif; font-weight:700;
+    background:var(--pin-red); color:#fff; padding:12px 20px; border-radius:6px; text-decoration:none;
+  }
+  .back{ display:inline-block; margin-bottom:24px; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.85rem; color:var(--ink); }
+  @media (max-width:600px){ .sheet{ margin:16px; padding:28px 22px; } }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <a class="back" href="./index.html">&larr; Back to the wall</a>
+    <h1>Support</h1>
+    <p>Got a question, found a bug, or want an ad taken down? Reach out directly.</p>
+
+    <h2>Ad removal requests</h2>
+    <p>Include the link/name of the ad you'd like removed, and we'll take care of it.</p>
+
+    <h2>Bugs & questions</h2>
+    <p>Tell us what happened and, if possible, which browser/device you're using.</p>
+
+    <a class="mail" href="mailto:juryjeremy@gmail.com">Email juryjeremy@gmail.com</a>
+  </div>
+</body>
+</html>
