@@ -105,6 +105,20 @@
   .card.highlighted{
     outline:3px solid var(--pin-blue); outline-offset:2px; transform:rotate(0deg) scale(1.04); z-index:3;
   }
+  .card.featured{
+    outline:2px solid #d4a017; box-shadow:0 10px 20px -6px rgba(212,160,23,0.5);
+  }
+  .sponsored-badge{
+    position:absolute; top:8px; right:8px; background:#d4a017; color:#fff; font-family:'Inter Tight',sans-serif;
+    font-weight:700; font-size:0.62rem; padding:3px 7px; border-radius:4px; letter-spacing:0.3px;
+  }
+  [dir="rtl"] .sponsored-badge{ right:auto; left:8px; }
+  .feature-link{
+    display:block; width:100%; margin-top:8px; background:none; border:1px dashed rgba(0,0,0,0.3);
+    border-radius:4px; padding:5px; font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.68rem;
+    color:var(--ink); cursor:pointer; opacity:0.7;
+  }
+  .feature-link:hover{ opacity:1; border-color:#d4a017; }
 
   .modal-backdrop{ position:fixed; inset:0; background:rgba(20,16,10,0.7); display:none; align-items:center; justify-content:center; padding:20px; z-index:10; }
   .modal-backdrop.open{ display:flex; }
@@ -362,6 +376,12 @@ async function loadAds(){
   if(!data || data.length === 0){ emptyMsg.style.display = 'block'; return; }
   emptyMsg.style.display = 'none';
 
+  const now = Date.now();
+  const isFeatured = (ad) => ad.featured && ad.featured_until && new Date(ad.featured_until).getTime() > now;
+
+  // Featured (non-expired) ads always float to the top, keeping the chosen sort within each group
+  data.sort((a, b) => (isFeatured(b) ? 1 : 0) - (isFeatured(a) ? 1 : 0));
+
   const myVotes = getMyVotes();
   const now = Date.now();
   const countryLabel = (code) => {
@@ -376,11 +396,13 @@ async function loadAds(){
     const onCooldown = lastVote && (now - lastVote) < VOTE_COOLDOWN_MS;
     const hoursLeft = onCooldown ? Math.ceil((VOTE_COOLDOWN_MS - (now - lastVote)) / 3600000) : 0;
     const cooldownMsg = T.voteCooldown.replace('{h}', hoursLeft);
+    const featured = isFeatured(ad);
 
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = 'card' + (featured ? ' featured' : '');
     card.innerHTML = `
       <div class="pin"></div>
+      ${featured ? `<span class="sponsored-badge">⭐ Sponsored</span>` : ''}
       <a class="imgwrap" href="${ad.target_url}" target="_blank" rel="noopener noreferrer sponsored">
         <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
       </a>
@@ -392,6 +414,7 @@ async function loadAds(){
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
         <button class="sbtn" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
       </div>
+      ${!featured ? `<button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $2/7 days</button>` : ''}
     `;
     grid.appendChild(card);
   });
@@ -462,6 +485,28 @@ function highlightSharedAd(){
   card.classList.add('highlighted');
   setTimeout(() => card.classList.remove('highlighted'), 2500);
 }
+
+// Feature this ad — $5 / 7 days via Ko-fi, activated with a one-time code
+const GUMROAD_URL = "https://jeremstyke.gumroad.com/l/Adwall-7-days";
+grid.addEventListener('click', async (e) => {
+  const fbtn = e.target.closest('.feature-link');
+  if(!fbtn) return;
+  const adId = fbtn.dataset.featureId;
+
+  const hasCode = confirm("Feature this ad for $2 / 7 days.\n\nOK = I already have a code\nCancel = take me to Gumroad to buy one (I'll message you your code within 24h)");
+  if(!hasCode){ window.open(GUMROAD_URL, '_blank'); return; }
+
+  const code = prompt("Enter your feature code:");
+  if(!code) return;
+
+  const { data: ok, error } = await sb.rpc('redeem_feature_code', { p_code: code.trim(), p_ad_id: adId });
+  if(error || !ok){
+    alert("That code is invalid or already used. Contact juryjeremy@gmail.com if you think this is a mistake.");
+    return;
+  }
+  alert("🎉 Your ad is now featured for 7 days!");
+  await loadAds();
+});
 
 // Submit form
 const form = document.getElementById('adForm');
