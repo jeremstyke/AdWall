@@ -313,7 +313,7 @@
     <p class="sub">Pin it to the top of the wall for 7 days.</p>
 
     <div class="feature-price">
-      <span class="price-amount">$5</span>
+      <span class="price-amount">$2</span>
       <span class="price-period">/ 7 days</span>
     </div>
 
@@ -541,7 +541,7 @@ async function loadAds(){
         <button class="sbtn sbtn-labeled" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share" title="Share this ad — new visitors who open it give it a free upvote">🔗 Share</button>
       </div>
       <span class="share-caption">📢 Share this to climb the rankings — each visitor = +1 free vote</span>
-      <button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $5/7 days</button>
+      <button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $2/7 days</button>
     `;
     return card;
   }
@@ -683,7 +683,7 @@ async function creditReferralVote(){
   await loadAds();
 }
 
-// Feature this ad — $5 / 7 days via Gumroad, activated with a one-time code
+// Feature this ad — $2 / 7 days via Gumroad, activated with a one-time code
 const GUMROAD_URL = "https://jeremstyke.gumroad.com/l/Adwall-7-days";
 const featureBackdrop = document.getElementById('featureBackdrop');
 const featureCodeInput = document.getElementById('featureCodeInput');
