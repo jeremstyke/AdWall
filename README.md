@@ -8,7 +8,7 @@ Pin your ad. Vote on others. Free, forever.
 [![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-d1453b?style=flat-square)](https://github.com/jeremstyke/AdWall/blob/main/LICENSE.md)
 [![Made with](https://img.shields.io/badge/made%20with-%E2%9D%A4%EF%B8%8F-2f5fa8?style=flat-square)](#)
 
-**[🌐 View the wall](https://jeremstyke.github.io/AdWall/)** · [Privacy Policy](https://jeremstyke.github.io/AdWall/privacy.html) · [Support](https://jeremstyke.github.io/AdWall/support.html)
+**[🌐 View the wall](https://jeremstyke.github.io/AdWall/)** · [About](https://jeremstyke.github.io/AdWall/about.html) · [Privacy Policy](https://jeremstyke.github.io/AdWall/privacy.html) · [Support](https://jeremstyke.github.io/AdWall/support.html)
 
 </div>
 

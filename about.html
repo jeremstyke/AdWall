@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About — THE WALL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --board:#c9a876; --ink:#1f1b16; --paper:#f7f3ea; --pin-blue:#2f5fa8; --pin-red:#d1453b; --gold:#d4a017; --wood-line: rgba(0,0,0,0.08); }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Inter',sans-serif; color:var(--ink);
+    background:
+      repeating-linear-gradient(0deg, var(--wood-line) 0 1px, transparent 1px 42px),
+      repeating-linear-gradient(90deg, var(--wood-line) 0 1px, transparent 1px 42px),
+      var(--board);
+    min-height:100vh;
+  }
+  .sheet{
+    max-width:720px; margin:48px auto; background:var(--paper); padding:40px 36px;
+    border-radius:2px; box-shadow:0 12px 24px -8px rgba(0,0,0,0.35); transform:rotate(-0.3deg);
+  }
+  h1{ font-family:'Anton',sans-serif; font-size:2.2rem; margin:0 0 6px; }
+  .tagline{ font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.95rem; opacity:0.7; margin:0 0 28px; }
+  h2{ font-family:'Inter Tight',sans-serif; font-size:1.05rem; margin:28px 0 8px; display:flex; align-items:center; gap:8px; }
+  p, li{ font-size:0.95rem; line-height:1.65; }
+  ul{ padding-left:20px; margin:8px 0; }
+  a{ color:var(--pin-blue); }
+  .back{ display:inline-block; margin-bottom:24px; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.85rem; color:var(--ink); }
+  .badge{
+    display:inline-block; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.7rem;
+    padding:2px 8px; border-radius:4px; margin-left:4px;
+  }
+  .badge.gold{ background:var(--gold); color:#fff; }
+  .cta{
+    display:inline-block; margin-top:8px; background:var(--pin-red); color:#fff; text-decoration:none;
+    font-family:'Inter Tight',sans-serif; font-weight:700; padding:10px 18px; border-radius:6px;
+  }
+  @media (max-width:600px){ .sheet{ margin:16px; padding:28px 22px; } }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <a class="back" href="./index.html">&larr; Back to the wall</a>
+    <h1>📌 About THE WALL</h1>
+    <p class="tagline">A free community ad board — pin it, vote it, share it.</p>
+
+    <p>AdWall is a place where anyone can pin a banner ad for free — no account, no credit card, no gatekeeping. It's a community-driven wall: the ads people care about rise to the top, the rest fade out.</p>
+
+    <h2>📌 Posting an ad</h2>
+    <p>Upload an image, add a link to your site, pick a country (or Worldwide), and you're live. One ad per day per person, to keep the wall fair.</p>
+
+    <h2>⬆️⬇️ Voting</h2>
+    <p>Everyone can upvote or downvote any ad — one vote per ad every 24 hours. Switch between <strong>Top</strong> (most voted) and <strong>New</strong> (most recent) to browse the wall.</p>
+
+    <h2>🔗 Sharing = free votes</h2>
+    <p>Every ad has a share link. When someone new opens your ad's shared link, it automatically earns a free upvote — no extra clicking needed on their end. Share it with friends, on social media, wherever — it's the easiest way to climb the rankings.</p>
+
+    <h2>⭐ Featured ads <span class="badge gold">Sponsored</span></h2>
+    <p>Want guaranteed visibility? Feature your ad for $5 / 7 days. Featured ads show in their own strip at the top of the wall, separate from the organic rankings — so the community's picks stay honest either way.</p>
+
+    <h2>🌍 Country targeting</h2>
+    <p>Pick a specific country when you post, or go Worldwide. Visitors can filter the wall to see ads for their region, or browse everything.</p>
+
+    <h2>💬 Questions?</h2>
+    <p>Reach out any time at <a href="mailto:juryjeremy@gmail.com">juryjeremy@gmail.com</a>, or check the <a href="./support.html">Support page</a>.</p>
+
+    <a class="cta" href="./index.html">Go to the wall →</a>
+  </div>
+</body>
+</html>
