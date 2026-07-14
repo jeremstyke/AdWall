@@ -128,6 +128,9 @@
   .sbtn-labeled{
     width:auto; padding:0 8px; gap:3px; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.66rem;
   }
+  .share-caption{
+    display:block; font-size:0.66rem; opacity:0.6; margin-top:5px; font-family:'Inter Tight',sans-serif;
+  }
   .card.highlighted{
     outline:3px solid var(--pin-blue); outline-offset:2px; transform:rotate(0deg) scale(1.04); z-index:3;
   }
@@ -234,7 +237,7 @@
 </header>
 
 <main>
-  <p class="reminder">💡 Vote once a day. Share your link — get free upvotes.</p>
+  <p class="reminder">📢 Want more votes? Share your ad's link with friends — every new visitor = +1 free upvote for you!</p>
   <div class="toolbar">
     <div class="group">
       <label style="margin:0;font-size:0.7rem;" id="filterLabelText">Showing</label>
@@ -290,7 +293,7 @@
 
     <div id="successPanel" class="success-panel" style="display:none;">
       <p class="success-title">🎉 Your ad is live!</p>
-      <p class="share-tip">💡 Tip: share your ad's 🔗 link with friends — every new person who opens it gives your ad a free upvote.</p>
+      <p class="share-tip">📢 Want to boost this ad? Share its 🔗 link with friends — the more people you send, the more free votes it gets!</p>
       <p class="cta-text">Building something for your business? <strong>Systeme.io</strong> lets you build a full sales funnel, email list, and online store — 100% free, no credit card needed.</p>
       <a class="btn cta-btn" href="https://cutt.ly/Pyeso1Zh" target="_blank" rel="noopener sponsored">Try Systeme.io free →</a>
       <button type="button" class="link-btn" id="postAnother">Post another ad</button>
@@ -537,6 +540,7 @@ async function loadAds(){
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
         <button class="sbtn sbtn-labeled" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share" title="Share this ad — new visitors who open it give it a free upvote">🔗 Share</button>
       </div>
+      <span class="share-caption">📢 Share this to climb the rankings — each visitor = +1 free vote</span>
       <button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $5/7 days</button>
     `;
     return card;
