@@ -228,6 +228,11 @@
       <a class="btn cta-btn" href="https://cutt.ly/Pyeso1Zh" target="_blank" rel="noopener sponsored">Try Systeme.io free →</a>
       <button type="button" class="link-btn" id="postAnother">Post another ad</button>
     </div>
+
+    <div id="limitPanel" class="success-panel" style="display:none;">
+      <p class="success-title">⏳ One ad per day</p>
+      <p class="cta-text" id="limitMsg">You've already posted an ad in the last 24h. Come back later to post another.</p>
+    </div>
   </div>
 </div>
 
@@ -250,6 +255,17 @@ const VOTES_KEY = 'adwall_myvotes';
 const VOTE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 function getMyVotes(){ return JSON.parse(localStorage.getItem(VOTES_KEY) || '{}'); }
 function setMyVotes(v){ localStorage.setItem(VOTES_KEY, JSON.stringify(v)); }
+
+const SUBMIT_KEY = 'adwall_last_submit';
+const SUBMIT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+function getLastSubmit(){ return parseInt(localStorage.getItem(SUBMIT_KEY) || '0', 10); }
+function setLastSubmit(ts){ localStorage.setItem(SUBMIT_KEY, String(ts)); }
+function submitCooldownHoursLeft(){
+  const last = getLastSubmit();
+  if(!last) return 0;
+  const elapsed = Date.now() - last;
+  return elapsed < SUBMIT_COOLDOWN_MS ? Math.ceil((SUBMIT_COOLDOWN_MS - elapsed) / 3600000) : 0;
+}
 
 // English-only UI strings
 const T = {
@@ -336,14 +352,32 @@ document.getElementById('countryFilter').addEventListener('change', (e) => {
 // Modal handling
 const backdrop = document.getElementById('modalBackdrop');
 document.getElementById('openModal').onclick = () => {
-  form.style.display = 'block';
-  document.getElementById('successPanel').style.display = 'none';
+  const hoursLeft = submitCooldownHoursLeft();
+  const successPanel = document.getElementById('successPanel');
+  const limitPanel = document.getElementById('limitPanel');
+  successPanel.style.display = 'none';
+  if(hoursLeft > 0){
+    form.style.display = 'none';
+    document.getElementById('limitMsg').textContent =
+      `You've already posted an ad in the last 24h. Come back in ${hoursLeft}h to post another.`;
+    limitPanel.style.display = 'block';
+  } else {
+    form.style.display = 'block';
+    limitPanel.style.display = 'none';
+  }
   backdrop.classList.add('open');
 };
 document.getElementById('closeModal').onclick = () => { backdrop.classList.remove('open'); };
 document.getElementById('postAnother').onclick = () => {
-  form.style.display = 'block';
+  const hoursLeft = submitCooldownHoursLeft();
   document.getElementById('successPanel').style.display = 'none';
+  if(hoursLeft > 0){
+    document.getElementById('limitMsg').textContent =
+      `You've already posted an ad in the last 24h. Come back in ${hoursLeft}h to post another.`;
+    document.getElementById('limitPanel').style.display = 'block';
+  } else {
+    form.style.display = 'block';
+  }
 };
 backdrop.addEventListener('click', e => { if(e.target === backdrop) backdrop.classList.remove('open'); });
 
@@ -383,7 +417,6 @@ async function loadAds(){
   data.sort((a, b) => (isFeatured(b) ? 1 : 0) - (isFeatured(a) ? 1 : 0));
 
   const myVotes = getMyVotes();
-  const now = Date.now();
   const countryLabel = (code) => {
     if(code === 'WW') return '🌐 Worldwide';
     const c = COUNTRIES.find(c => c.code === code);
@@ -414,7 +447,7 @@ async function loadAds(){
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
         <button class="sbtn" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
       </div>
-      ${!featured ? `<button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $2/7 days</button>` : ''}
+      ${!featured ? `<button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $5/7 days</button>` : ''}
     `;
     grid.appendChild(card);
   });
@@ -493,7 +526,7 @@ grid.addEventListener('click', async (e) => {
   if(!fbtn) return;
   const adId = fbtn.dataset.featureId;
 
-  const hasCode = confirm("Feature this ad for $2 / 7 days.\n\nOK = I already have a code\nCancel = take me to Gumroad to buy one (I'll message you your code within 24h)");
+  const hasCode = confirm("Feature this ad for $5 / 7 days.\n\nOK = I already have a code\nCancel = take me to Gumroad to buy one (I'll message you your code within 24h)");
   if(!hasCode){ window.open(GUMROAD_URL, '_blank'); return; }
 
   const code = prompt("Enter your feature code:");
@@ -517,6 +550,8 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   statusMsg.className = 'status-msg';
   statusMsg.textContent = '';
+
+  if(submitCooldownHoursLeft() > 0) return; // safety net, UI already blocks this
 
   const targetUrl = document.getElementById('targetUrl').value.trim();
   const name = document.getElementById('advertiserName').value.trim();
@@ -550,6 +585,7 @@ form.addEventListener('submit', async (e) => {
     });
     if(insErr) throw insErr;
 
+    setLastSubmit(Date.now());
     statusMsg.textContent = '';
     statusMsg.className = 'status-msg';
     form.reset();
