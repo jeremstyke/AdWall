@@ -56,6 +56,10 @@
     background:var(--paper); border:2px dashed var(--ink); border-radius:6px; padding:8px 14px;
     margin:4px 0 14px; opacity:0.85;
   }
+  .referral-banner{
+    text-align:center; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.85rem;
+    background:#2f7a4a; color:#fff; border-radius:6px; padding:10px 14px; margin:0 0 10px;
+  }
   .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:10px; }
   .toolbar .group{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .sort-toggle{
@@ -105,6 +109,7 @@
   .card a.imgwrap{ display:block; }
   .card img{ width:100%; height:auto; max-height:190px; object-fit:contain; display:block; border:1px solid rgba(0,0,0,0.1); background:#fff; }
   .card .name{ display:block; margin-top:8px; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.78rem; }
+  .card .ad-desc{ display:block; margin-top:3px; font-size:0.72rem; opacity:0.75; line-height:1.35; }
   .card .country-tag{ font-size:0.65rem; opacity:0.6; margin-top:2px; display:block; font-family:'Inter Tight',sans-serif; }
 
   .votebar{ display:flex; align-items:center; gap:6px; margin-top:8px; }
@@ -169,6 +174,10 @@
   .success-panel{ text-align:center; padding:6px 0 4px; }
   .success-title{ font-family:'Anton',sans-serif; font-size:1.5rem; margin:0 0 12px; }
   .cta-text{ font-size:0.85rem; line-height:1.5; margin:0 0 16px; opacity:0.85; }
+  .share-tip{
+    font-size:0.8rem; line-height:1.5; margin:0 0 16px; background:#eef4ee; color:#2f7a4a;
+    border-radius:6px; padding:8px 10px; font-weight:600;
+  }
   .cta-btn{ display:inline-block; width:100%; text-align:center; text-decoration:none; }
   .link-btn{
     display:block; margin:14px auto 0; background:none; border:none; text-decoration:underline;
@@ -254,6 +263,9 @@
       <label id="labelName" for="advertiserName">Name / brand (optional)</label>
       <input type="text" id="advertiserName" maxlength="60" placeholder="My Awesome Brand">
 
+      <label id="labelDesc" for="adDescription">Mini description (optional)</label>
+      <input type="text" id="adDescription" maxlength="80" placeholder="One short line about your ad">
+
       <label id="labelFile" for="fileInput">Ad image *</label>
       <div class="file-drop" id="fileDrop" tabindex="0">
         <span id="fileDropText">Click to choose an image (JPG/PNG, max 2MB)</span>
@@ -275,6 +287,7 @@
 
     <div id="successPanel" class="success-panel" style="display:none;">
       <p class="success-title">🎉 Your ad is live!</p>
+      <p class="share-tip">💡 Tip: share your ad's 🔗 link with friends — every new person who opens it gives your ad a free upvote.</p>
       <p class="cta-text">Building something for your business? <strong>Systeme.io</strong> lets you build a full sales funnel, email list, and online store — 100% free, no credit card needed.</p>
       <a class="btn cta-btn" href="https://cutt.ly/Pyeso1Zh" target="_blank" rel="noopener sponsored">Try Systeme.io free →</a>
       <button type="button" class="link-btn" id="postAnother">Post another ad</button>
@@ -513,12 +526,13 @@ async function loadAds(){
         <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
       </a>
       ${ad.advertiser_name ? `<span class="name">${ad.advertiser_name}</span>` : ''}
-      <span class="country-tag">${countryLabel(ad.country)} · 👁 ${ad.views ?? 0}</span>
+      ${ad.description ? `<span class="ad-desc">${ad.description}</span>` : ''}
+      <span class="country-tag">${countryLabel(ad.country)}</span>
       <div class="votebar">
         <button class="vbtn up ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="1" ${onCooldown ? 'disabled' : ''} aria-label="Upvote" title="${onCooldown ? cooldownMsg : ''}">▲</button>
         <span class="vcount" data-count-for="${ad.id}">${ad.votes ?? 0}</span>
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
-        <button class="sbtn" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
+        <button class="sbtn" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share" title="Share this ad — new visitors who open it give it a free upvote">🔗</button>
       </div>
       <button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $5/7 days</button>
     `;
@@ -542,12 +556,11 @@ async function loadAds(){
         <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
       </a>
       ${ad.advertiser_name ? `<span class="name">${ad.advertiser_name}</span>` : ''}
-      <span class="views-tag">👁 ${ad.views ?? 0}</span>
       <div class="votebar compact-votebar">
         <button class="vbtn up ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="1" ${onCooldown ? 'disabled' : ''} aria-label="Upvote" title="${onCooldown ? cooldownMsg : ''}">▲</button>
         <span class="vcount" data-count-for="${ad.id}">${ad.votes ?? 0}</span>
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
-        <button class="sbtn compact-share" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
+        <button class="sbtn compact-share" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share" title="Share this ad — new visitors who open it give it a free upvote">🔗</button>
       </div>
     `;
     return card;
@@ -569,9 +582,6 @@ async function loadAds(){
   organicHeading.style.display = featuredAds.length > 0 ? 'block' : 'none';
   organicAds.forEach(ad => grid.appendChild(buildCard(ad, false)));
   highlightSharedAd();
-
-  const shownIds = data.map(ad => ad.id);
-  if(shownIds.length > 0) sb.rpc('increment_ad_views', { p_ids: shownIds }); // fire-and-forget
 }
 
 // Vote handling — 1 vote per ad per 24h (client-side cooldown), server increment via RPC
@@ -637,6 +647,33 @@ function highlightSharedAd(){
   card.scrollIntoView({ behavior:'smooth', block:'center' });
   card.classList.add('highlighted');
   setTimeout(() => card.classList.remove('highlighted'), 2500);
+}
+
+// Referral bonus — arriving via a shared ad link (?ad=...) automatically credits that ad
+// one upvote, once per visitor per 24h (reuses the normal vote cooldown so it can't stack
+// with a manual vote on top).
+async function creditReferralVote(){
+  const params = new URLSearchParams(location.search);
+  const sharedId = params.get('ad');
+  if(!sharedId) return;
+
+  const myVotes = getMyVotes();
+  const now = Date.now();
+  if(myVotes[sharedId] && (now - myVotes[sharedId]) < VOTE_COOLDOWN_MS) return; // already voted/credited recently
+
+  const { error } = await sb.rpc('increment_votes', { p_ad_id: sharedId, p_delta: 1 });
+  if(error) return;
+
+  myVotes[sharedId] = now;
+  setMyVotes(myVotes);
+
+  const banner = document.createElement('p');
+  banner.className = 'referral-banner';
+  banner.textContent = '🎉 Thanks for checking this out via a shared link — you just gave it an upvote!';
+  document.querySelector('main').prepend(banner);
+  setTimeout(() => banner.remove(), 5000);
+
+  await loadAds();
 }
 
 // Feature this ad — $5 / 7 days via Gumroad, activated with a one-time code
@@ -731,6 +768,7 @@ form.addEventListener('submit', async (e) => {
 
   const targetUrl = document.getElementById('targetUrl').value.trim();
   const name = document.getElementById('advertiserName').value.trim();
+  const description = document.getElementById('adDescription').value.trim();
   const country = document.getElementById('countrySelect').value;
   const file = fileInput.files[0];
 
@@ -753,6 +791,7 @@ form.addEventListener('submit', async (e) => {
 
     const { error: insErr } = await sb.from('ads').insert({
       advertiser_name: name || null,
+      description: description || null,
       image_path: path,
       target_url: targetUrl,
       country: country,
@@ -789,6 +828,7 @@ async function trackSiteView(){
 applyText();
 loadAds();
 trackSiteView();
+creditReferralVote();
 </script>
 </body>
 </html>
