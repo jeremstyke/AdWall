@@ -80,10 +80,10 @@
   .card.compact img{ max-height:90px; }
   .card.compact .name{ font-size:0.68rem; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .card.compact .sponsored-badge{ font-size:0.55rem; padding:2px 5px; }
-  .card.compact .compact-share{
-    position:absolute; top:6px; right:6px; width:20px; height:20px; font-size:0.6rem;
-    background:rgba(255,255,255,0.9);
-  }
+  .card.compact .compact-votebar{ margin-top:6px; gap:4px; }
+  .card.compact .vbtn{ width:20px; height:18px; font-size:0.6rem; }
+  .card.compact .vcount{ font-size:0.68rem; min-width:14px; }
+  .card.compact .compact-share{ width:18px; height:18px; font-size:0.55rem; }
   .organic-heading{
     font-family:'Anton',sans-serif; font-size:1.1rem; margin:6px 0 2px; opacity:0.85;
     border-top:2px dashed rgba(0,0,0,0.15); padding-top:14px;
@@ -465,8 +465,6 @@ fileInput.addEventListener('change', () => { fileNameEl.textContent = fileInput.
 
 // Load ads from Supabase, applying country filter + sort
 async function loadAds(){
-  await sb.rpc('promote_queued_ads');
-
   let query = sb.from('ads').select('*').eq('status','active');
 
   if(countryFilterMode === 'WW'){
@@ -505,10 +503,9 @@ async function loadAds(){
     const cooldownMsg = T.voteCooldown.replace('{h}', hoursLeft);
 
     const card = document.createElement('div');
-    card.className = 'card' + (ad.featured_pending ? ' pending' : '');
+    card.className = 'card';
     card.innerHTML = `
       <div class="pin"></div>
-      ${ad.featured_pending ? `<span class="queued-badge">⏳ Queued for Sponsored</span>` : ''}
       <a class="imgwrap" href="${ad.target_url}" target="_blank" rel="noopener noreferrer sponsored">
         <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
       </a>
@@ -520,7 +517,7 @@ async function loadAds(){
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
         <button class="sbtn" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
       </div>
-      ${!ad.featured_pending ? `<button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $5/7 days</button>` : ''}
+      <button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $5/7 days</button>
     `;
     return card;
   }
@@ -529,6 +526,11 @@ async function loadAds(){
   // Keeps the strip short on mobile instead of repeating the full card height.
   function buildSponsoredCard(ad){
     const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(ad.image_path);
+    const lastVote = myVotes[ad.id];
+    const onCooldown = lastVote && (now - lastVote) < VOTE_COOLDOWN_MS;
+    const hoursLeft = onCooldown ? Math.ceil((VOTE_COOLDOWN_MS - (now - lastVote)) / 3600000) : 0;
+    const cooldownMsg = T.voteCooldown.replace('{h}', hoursLeft);
+
     const card = document.createElement('div');
     card.className = 'card featured compact';
     card.innerHTML = `
@@ -537,7 +539,12 @@ async function loadAds(){
         <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
       </a>
       ${ad.advertiser_name ? `<span class="name">${ad.advertiser_name}</span>` : ''}
-      <button class="sbtn compact-share" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
+      <div class="votebar compact-votebar">
+        <button class="vbtn up ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="1" ${onCooldown ? 'disabled' : ''} aria-label="Upvote" title="${onCooldown ? cooldownMsg : ''}">▲</button>
+        <span class="vcount" data-count-for="${ad.id}">${ad.votes ?? 0}</span>
+        <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
+        <button class="sbtn compact-share" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
+      </div>
     `;
     return card;
   }
@@ -545,6 +552,8 @@ async function loadAds(){
   const featuredAds = data.filter(isFeatured);
   const organicAds = data.filter(ad => !isFeatured(ad));
 
+  // Every paid ad is featured for its full 7 days, no slot limit. All of them show in the
+  // strip — if there are more than fit on screen, people scroll horizontally to see the rest.
   if(featuredAds.length > 0){
     sponsoredRow.style.display = 'flex';
     featuredAds.forEach(ad => sponsoredRow.appendChild(buildSponsoredCard(ad)));
@@ -552,6 +561,7 @@ async function loadAds(){
     sponsoredRow.style.display = 'none';
   }
 
+  organicHeading.textContent = sortMode === 'top' ? '🏆 Top voted' : '🆕 Recently added';
   organicHeading.style.display = featuredAds.length > 0 ? 'block' : 'none';
   organicAds.forEach(ad => grid.appendChild(buildCard(ad, false)));
   highlightSharedAd();
@@ -645,32 +655,24 @@ document.addEventListener('click', async (e) => {
 
 const availabilityMsg = document.getElementById('availabilityMsg');
 async function checkFeatureAvailability(){
-  availabilityMsg.textContent = 'Checking availability...';
-  availabilityMsg.className = 'availability-msg';
-
-  const { data, error } = await sb
+  const { count, error } = await sb
     .from('ads')
-    .select('featured_until')
+    .select('id', { count: 'exact', head: true })
     .eq('featured', true)
-    .gt('featured_until', new Date().toISOString())
-    .order('featured_until', { ascending: true });
+    .gt('featured_until', new Date().toISOString());
 
   if(error){
-    availabilityMsg.textContent = 'Could not check availability — you can still buy a code.';
-    availabilityMsg.className = 'availability-msg';
+    availabilityMsg.textContent = '✅ Your ad goes live instantly for 7 days.';
+    availabilityMsg.className = 'availability-msg open';
     return;
   }
 
-  const activeCount = data ? data.length : 0;
-  if(activeCount < 3){
-    availabilityMsg.textContent = `✅ ${3 - activeCount} spot${3 - activeCount > 1 ? 's' : ''} available — your ad goes live instantly.`;
-    availabilityMsg.className = 'availability-msg open';
+  if(!count || count === 0){
+    availabilityMsg.textContent = '✅ No other sponsored ads right now — yours will show every time.';
   } else {
-    const nextFree = new Date(data[0].featured_until);
-    const hoursLeft = Math.max(1, Math.ceil((nextFree.getTime() - Date.now()) / 3600000));
-    availabilityMsg.textContent = `⏳ All 3 spots are taken. Next opening in ~${hoursLeft}h — buying now means you'll be queued for that spot.`;
-    availabilityMsg.className = 'availability-msg full';
+    availabilityMsg.textContent = `✅ Your ad goes live instantly. ${count} other ad${count > 1 ? 's are' : ' is'} also sponsored right now — all shown in the strip, people scroll sideways to see everyone.`;
   }
+  availabilityMsg.className = 'availability-msg open';
 }
 
 document.getElementById('closeFeature').onclick = () => { featureBackdrop.classList.remove('open'); };
@@ -698,13 +700,6 @@ async function activateFeatureCode(){
   if(result === 'invalid'){
     featureStatusMsg.textContent = 'Invalid or already-used code. Contact juryjeremy@gmail.com if this is a mistake.';
     featureStatusMsg.className = 'status-msg err';
-    return;
-  }
-  if(result === 'queued'){
-    featureStatusMsg.textContent = "⏳ All 3 sponsored spots are taken right now. Your ad is queued and will go live automatically as soon as one frees up — no need to do anything else.";
-    featureStatusMsg.className = 'status-msg ok';
-    await loadAds();
-    setTimeout(() => { featureBackdrop.classList.remove('open'); }, 2600);
     return;
   }
   featureStatusMsg.textContent = '🎉 Your ad is now featured for 7 days!';
