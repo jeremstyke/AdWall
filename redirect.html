@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redirecting… — THE WALL</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --board:#c9a876; --ink:#1f1b16; --paper:#f7f3ea; --pin-blue:#2f5fa8; --pin-red:#d1453b; --wood-line: rgba(0,0,0,0.08); }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Inter',sans-serif; color:var(--ink);
+    background:
+      repeating-linear-gradient(0deg, var(--wood-line) 0 1px, transparent 1px 42px),
+      repeating-linear-gradient(90deg, var(--wood-line) 0 1px, transparent 1px 42px),
+      var(--board);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .sheet{
+    max-width:420px; width:100%; background:var(--paper); padding:40px 32px; text-align:center;
+    border-radius:2px; box-shadow:0 14px 28px -8px rgba(0,0,0,0.35); transform:rotate(-0.5deg);
+  }
+  h1{ font-family:'Anton',sans-serif; font-size:1.7rem; margin:0 0 10px; }
+  p{ font-size:0.92rem; line-height:1.5; margin:0 0 4px; }
+  .dest{
+    display:block; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.85rem;
+    color:var(--pin-blue); word-break:break-all; margin:12px 0 22px;
+  }
+  .countdown{
+    font-family:'Anton',sans-serif; font-size:2.6rem; color:var(--pin-red); margin:0 0 22px;
+  }
+  .go-btn{
+    display:inline-block; background:var(--ink); color:#fff; text-decoration:none;
+    font-family:'Inter Tight',sans-serif; font-weight:700; padding:12px 22px; border-radius:6px;
+  }
+  .warn{ font-size:0.75rem; opacity:0.6; margin-top:20px; }
+  .back{ display:block; margin-top:16px; font-size:0.8rem; color:var(--ink); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <h1>👋 You're leaving AdWall</h1>
+    <p>You'll be redirected to:</p>
+    <span class="dest" id="destText">…</span>
+    <div class="countdown" id="countdown">5</div>
+    <a class="go-btn" id="goNowBtn" href="#">Go now →</a>
+    <p class="warn">AdWall doesn't control or vouch for external sites — browse at your own discretion.</p>
+    <a class="back" href="./index.html">← Back to the wall</a>
+  </div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const dest = params.get('to');
+  const destEl = document.getElementById('destText');
+  const countdownEl = document.getElementById('countdown');
+  const goNowBtn = document.getElementById('goNowBtn');
+
+  if(!dest){
+    destEl.textContent = 'No destination provided.';
+    countdownEl.style.display = 'none';
+    goNowBtn.style.display = 'none';
+  } else {
+    let safeDest;
+    try {
+      const u = new URL(dest);
+      safeDest = u.href;
+      destEl.textContent = u.hostname;
+    } catch {
+      destEl.textContent = 'Invalid link.';
+      countdownEl.style.display = 'none';
+      goNowBtn.style.display = 'none';
+    }
+
+    if(safeDest){
+      goNowBtn.href = safeDest;
+      let secondsLeft = 5;
+      countdownEl.textContent = secondsLeft;
+      const timer = setInterval(() => {
+        secondsLeft -= 1;
+        countdownEl.textContent = secondsLeft;
+        if(secondsLeft <= 0){
+          clearInterval(timer);
+          window.location.href = safeDest;
+        }
+      }, 1000);
+    }
+  }
+</script>
+</body>
+</html>

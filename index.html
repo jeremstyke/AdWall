@@ -79,6 +79,7 @@
   .card.compact:hover{ transform:rotate(0deg); }
   .card.compact img{ max-height:90px; }
   .card.compact .name{ font-size:0.68rem; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card.compact .views-tag{ font-size:0.6rem; opacity:0.6; display:block; }
   .card.compact .sponsored-badge{ font-size:0.55rem; padding:2px 5px; }
   .card.compact .compact-votebar{ margin-top:6px; gap:4px; }
   .card.compact .vbtn{ width:20px; height:18px; font-size:0.6rem; }
@@ -204,6 +205,7 @@
   }
   footer .footer-links{ opacity:1; }
   footer .footer-links a{ color:var(--ink); text-decoration:underline; }
+  .site-views{ font-family:'Inter Tight',sans-serif; font-weight:600; opacity:0.6; }
 </style>
 </head>
 <body>
@@ -238,6 +240,7 @@
 
 <footer>
   <span id="footerText">Made with ❤️ — pin your ad, free, forever.</span>
+  <span id="siteViews" class="site-views"></span>
   <span class="footer-links"><a href="./privacy.html">Privacy Policy</a> · <a href="./support.html">Support</a></span>
 </footer>
 
@@ -506,11 +509,11 @@ async function loadAds(){
     card.className = 'card';
     card.innerHTML = `
       <div class="pin"></div>
-      <a class="imgwrap" href="${ad.target_url}" target="_blank" rel="noopener noreferrer sponsored">
+      <a class="imgwrap" href="./redirect.html?to=${encodeURIComponent(ad.target_url)}" target="_blank" rel="noopener noreferrer sponsored">
         <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
       </a>
       ${ad.advertiser_name ? `<span class="name">${ad.advertiser_name}</span>` : ''}
-      <span class="country-tag">${countryLabel(ad.country)}</span>
+      <span class="country-tag">${countryLabel(ad.country)} · 👁 ${ad.views ?? 0}</span>
       <div class="votebar">
         <button class="vbtn up ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="1" ${onCooldown ? 'disabled' : ''} aria-label="Upvote" title="${onCooldown ? cooldownMsg : ''}">▲</button>
         <span class="vcount" data-count-for="${ad.id}">${ad.votes ?? 0}</span>
@@ -535,10 +538,11 @@ async function loadAds(){
     card.className = 'card featured compact';
     card.innerHTML = `
       <span class="sponsored-badge">⭐ Sponsored</span>
-      <a class="imgwrap" href="${ad.target_url}" target="_blank" rel="noopener noreferrer sponsored">
+      <a class="imgwrap" href="./redirect.html?to=${encodeURIComponent(ad.target_url)}" target="_blank" rel="noopener noreferrer sponsored">
         <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
       </a>
       ${ad.advertiser_name ? `<span class="name">${ad.advertiser_name}</span>` : ''}
+      <span class="views-tag">👁 ${ad.views ?? 0}</span>
       <div class="votebar compact-votebar">
         <button class="vbtn up ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="1" ${onCooldown ? 'disabled' : ''} aria-label="Upvote" title="${onCooldown ? cooldownMsg : ''}">▲</button>
         <span class="vcount" data-count-for="${ad.id}">${ad.votes ?? 0}</span>
@@ -565,6 +569,9 @@ async function loadAds(){
   organicHeading.style.display = featuredAds.length > 0 ? 'block' : 'none';
   organicAds.forEach(ad => grid.appendChild(buildCard(ad, false)));
   highlightSharedAd();
+
+  const shownIds = data.map(ad => ad.id);
+  if(shownIds.length > 0) sb.rpc('increment_ad_views', { p_ids: shownIds }); // fire-and-forget
 }
 
 // Vote handling — 1 vote per ad per 24h (client-side cooldown), server increment via RPC
@@ -772,8 +779,16 @@ form.addEventListener('submit', async (e) => {
 });
 
 setSortToggle();
+async function trackSiteView(){
+  const siteViewsEl = document.getElementById('siteViews');
+  const { data, error } = await sb.rpc('increment_site_views');
+  if(error || data == null) return;
+  siteViewsEl.textContent = `· 👁 ${Number(data).toLocaleString()} visits`;
+}
+
 applyText();
 loadAds();
+trackSiteView();
 </script>
 </body>
 </html>
