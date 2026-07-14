@@ -56,6 +56,7 @@
     background:var(--paper); border:2px dashed var(--ink); border-radius:6px; padding:8px 14px;
     margin:4px 0 14px; opacity:0.85;
   }
+  .reminder a{ color:var(--pin-blue); text-decoration:underline; }
   .referral-banner{
     text-align:center; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.85rem;
     background:#2f7a4a; color:#fff; border-radius:6px; padding:10px 14px; margin:0 0 10px;
@@ -237,7 +238,7 @@
 </header>
 
 <main>
-  <p class="reminder">📢 Want more votes? Share your ad's link with friends — every new visitor = +1 free upvote for you!</p>
+  <p class="reminder">📢 Want more votes? Share your ad's link with friends — every new visitor = +1 free upvote for you! Even sharing it on traffic exchanges like <a href="https://www.easyhits4u.com/?ref=juryjeremy" target="_blank" rel="noopener sponsored">EasyHits4U</a> counts.</p>
   <div class="toolbar">
     <div class="group">
       <label style="margin:0;font-size:0.7rem;" id="filterLabelText">Showing</label>
@@ -540,8 +541,8 @@ async function loadAds(){
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
         <button class="sbtn sbtn-labeled" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share" title="Share this ad — new visitors who open it give it a free upvote">🔗 Share</button>
       </div>
-      <span class="share-caption">📢 Share this to climb the rankings — each visitor = +1 free vote</span>
-      <button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $2/7 days</button>
+      <span class="share-caption">📢 Share = +1 free vote per visitor</span>
+      <button class="feature-link" data-feature-id="${ad.id}">⭐ Feature — $2/7 days</button>
     `;
     return card;
   }
