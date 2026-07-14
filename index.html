@@ -71,6 +71,23 @@
   .empty{ text-align:center; padding:80px 20px; font-family:'Inter Tight',sans-serif; font-weight:600; opacity:0.7; }
 
   .grid{ columns: 190px; column-gap:20px; padding-top:14px; }
+  .sponsored-row{
+    display:flex; gap:12px; overflow-x:auto; padding:14px 4px 18px; scroll-snap-type:x proximity;
+  }
+  .sponsored-row .card{ flex:0 0 130px; scroll-snap-align:start; margin:0; }
+  .card.compact{ padding:8px 8px 8px; transform:rotate(0deg); position:relative; }
+  .card.compact:hover{ transform:rotate(0deg); }
+  .card.compact img{ max-height:90px; }
+  .card.compact .name{ font-size:0.68rem; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card.compact .sponsored-badge{ font-size:0.55rem; padding:2px 5px; }
+  .card.compact .compact-share{
+    position:absolute; top:6px; right:6px; width:20px; height:20px; font-size:0.6rem;
+    background:rgba(255,255,255,0.9);
+  }
+  .organic-heading{
+    font-family:'Anton',sans-serif; font-size:1.1rem; margin:6px 0 2px; opacity:0.85;
+    border-top:2px dashed rgba(0,0,0,0.15); padding-top:14px;
+  }
   .card{
     position:relative; background:var(--paper); padding:10px 10px 8px; border-radius:2px;
     box-shadow:0 8px 14px -6px rgba(0,0,0,0.35); display:block; break-inside:avoid; margin:0 0 20px;
@@ -109,10 +126,15 @@
     outline:2px solid #d4a017; box-shadow:0 10px 20px -6px rgba(212,160,23,0.5);
   }
   .sponsored-badge{
-    position:absolute; top:8px; right:8px; background:#d4a017; color:#fff; font-family:'Inter Tight',sans-serif;
-    font-weight:700; font-size:0.62rem; padding:3px 7px; border-radius:4px; letter-spacing:0.3px;
+    display:inline-block; background:#d4a017; color:#fff; font-family:'Inter Tight',sans-serif;
+    font-weight:700; font-size:0.6rem; padding:2px 6px; border-radius:3px; letter-spacing:0.3px;
+    margin-bottom:6px;
   }
-  [dir="rtl"] .sponsored-badge{ right:auto; left:8px; }
+  .queued-badge{
+    display:inline-block; background:none; border:1px solid rgba(0,0,0,0.3); color:var(--ink);
+    font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.6rem; padding:2px 6px;
+    border-radius:3px; letter-spacing:0.3px; margin-bottom:6px; opacity:0.75;
+  }
   .feature-link{
     display:block; width:100%; margin-top:8px; background:none; border:1px dashed rgba(0,0,0,0.3);
     border-radius:4px; padding:5px; font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.68rem;
@@ -161,6 +183,12 @@
   }
   .feature-price .price-amount{ font-family:'Anton',sans-serif; font-size:2.4rem; color:#b8342a; }
   .feature-price .price-period{ font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.85rem; opacity:0.7; }
+  .availability-msg{
+    font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.8rem; margin:0 0 14px;
+    padding:8px 10px; border-radius:6px; background:#f0ece0;
+  }
+  .availability-msg.open{ color:#2f7a4a; }
+  .availability-msg.full{ color:#b8342a; }
   .feature-divider{
     display:flex; align-items:center; gap:10px; margin:22px 0 14px;
     font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.78rem; opacity:0.6;
@@ -202,6 +230,8 @@
       <button id="sortNew" aria-pressed="false">New</button>
     </div>
   </div>
+  <div id="sponsoredRow" class="sponsored-row" style="display:none;"></div>
+  <p id="organicHeading" class="organic-heading" style="display:none;">🏆 Top voted</p>
   <div id="grid" class="grid"></div>
   <p id="emptyMsg" class="empty" style="display:none;">The wall is empty for now. Be the first to pin your ad!</p>
 </main>
@@ -265,6 +295,8 @@
       <span class="price-period">/ 7 days</span>
     </div>
 
+    <p class="availability-msg" id="availabilityMsg">Checking availability...</p>
+
     <a class="btn cta-btn" id="buyFeatureLink" href="#" target="_blank" rel="noopener sponsored">Buy a code on Gumroad →</a>
 
     <div class="feature-divider"><span>Already have a code?</span></div>
@@ -288,6 +320,8 @@ const BUCKET = "ads";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const grid = document.getElementById('grid');
 const emptyMsg = document.getElementById('emptyMsg');
+const sponsoredRow = document.getElementById('sponsoredRow');
+const organicHeading = document.getElementById('organicHeading');
 let sortMode = 'top';
 let countryFilterMode = 'ALL';
 
@@ -431,6 +465,8 @@ fileInput.addEventListener('change', () => { fileNameEl.textContent = fileInput.
 
 // Load ads from Supabase, applying country filter + sort
 async function loadAds(){
+  await sb.rpc('promote_queued_ads');
+
   let query = sb.from('ads').select('*').eq('status','active');
 
   if(countryFilterMode === 'WW'){
@@ -447,14 +483,12 @@ async function loadAds(){
   if(error){ console.error(error); return; }
 
   grid.innerHTML = '';
-  if(!data || data.length === 0){ emptyMsg.style.display = 'block'; return; }
+  sponsoredRow.innerHTML = '';
+  if(!data || data.length === 0){ emptyMsg.style.display = 'block'; organicHeading.style.display='none'; sponsoredRow.style.display='none'; return; }
   emptyMsg.style.display = 'none';
 
   const now = Date.now();
   const isFeatured = (ad) => ad.featured && ad.featured_until && new Date(ad.featured_until).getTime() > now;
-
-  // Featured (non-expired) ads always float to the top, keeping the chosen sort within each group
-  data.sort((a, b) => (isFeatured(b) ? 1 : 0) - (isFeatured(a) ? 1 : 0));
 
   const myVotes = getMyVotes();
   const countryLabel = (code) => {
@@ -463,19 +497,18 @@ async function loadAds(){
     return c ? `${c.flag} ${c.name}` : code;
   };
 
-  data.forEach(ad => {
+  function buildCard(ad, featured){
     const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(ad.image_path);
     const lastVote = myVotes[ad.id];
     const onCooldown = lastVote && (now - lastVote) < VOTE_COOLDOWN_MS;
     const hoursLeft = onCooldown ? Math.ceil((VOTE_COOLDOWN_MS - (now - lastVote)) / 3600000) : 0;
     const cooldownMsg = T.voteCooldown.replace('{h}', hoursLeft);
-    const featured = isFeatured(ad);
 
     const card = document.createElement('div');
-    card.className = 'card' + (featured ? ' featured' : '');
+    card.className = 'card' + (ad.featured_pending ? ' pending' : '');
     card.innerHTML = `
       <div class="pin"></div>
-      ${featured ? `<span class="sponsored-badge">⭐ Sponsored</span>` : ''}
+      ${ad.featured_pending ? `<span class="queued-badge">⏳ Queued for Sponsored</span>` : ''}
       <a class="imgwrap" href="${ad.target_url}" target="_blank" rel="noopener noreferrer sponsored">
         <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
       </a>
@@ -487,15 +520,45 @@ async function loadAds(){
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
         <button class="sbtn" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
       </div>
-      ${!featured ? `<button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $5/7 days</button>` : ''}
+      ${!ad.featured_pending ? `<button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $5/7 days</button>` : ''}
     `;
-    grid.appendChild(card);
-  });
+    return card;
+  }
+
+  // Compact card for the sponsored strip — image, name, badge, share only.
+  // Keeps the strip short on mobile instead of repeating the full card height.
+  function buildSponsoredCard(ad){
+    const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(ad.image_path);
+    const card = document.createElement('div');
+    card.className = 'card featured compact';
+    card.innerHTML = `
+      <span class="sponsored-badge">⭐ Sponsored</span>
+      <a class="imgwrap" href="${ad.target_url}" target="_blank" rel="noopener noreferrer sponsored">
+        <img src="${pub.publicUrl}" alt="${(ad.advertiser_name || 'Ad').replace(/"/g,'')}" loading="lazy">
+      </a>
+      ${ad.advertiser_name ? `<span class="name">${ad.advertiser_name}</span>` : ''}
+      <button class="sbtn compact-share" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share">🔗</button>
+    `;
+    return card;
+  }
+
+  const featuredAds = data.filter(isFeatured);
+  const organicAds = data.filter(ad => !isFeatured(ad));
+
+  if(featuredAds.length > 0){
+    sponsoredRow.style.display = 'flex';
+    featuredAds.forEach(ad => sponsoredRow.appendChild(buildSponsoredCard(ad)));
+  } else {
+    sponsoredRow.style.display = 'none';
+  }
+
+  organicHeading.style.display = featuredAds.length > 0 ? 'block' : 'none';
+  organicAds.forEach(ad => grid.appendChild(buildCard(ad, false)));
   highlightSharedAd();
 }
 
 // Vote handling — 1 vote per ad per 24h (client-side cooldown), server increment via RPC
-grid.addEventListener('click', async (e) => {
+document.addEventListener('click', async (e) => {
   const btn = e.target.closest('.vbtn');
   if(!btn || btn.disabled) return;
   const id = btn.dataset.id;
@@ -522,7 +585,7 @@ grid.addEventListener('click', async (e) => {
 });
 
 // Share handling — copies/shares a direct link to a specific ad
-grid.addEventListener('click', async (e) => {
+document.addEventListener('click', async (e) => {
   const sbtn = e.target.closest('.sbtn');
   if(!sbtn) return;
   const id = sbtn.dataset.shareId;
@@ -551,7 +614,7 @@ function highlightSharedAd(){
   const params = new URLSearchParams(location.search);
   const sharedId = params.get('ad');
   if(!sharedId) return;
-  const btn = grid.querySelector(`[data-share-id="${sharedId}"]`);
+  const btn = grid.querySelector(`[data-share-id="${sharedId}"]`) || sponsoredRow.querySelector(`[data-share-id="${sharedId}"]`);
   if(!btn) return;
   const card = btn.closest('.card');
   card.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -568,7 +631,7 @@ const activateFeatureBtn = document.getElementById('activateFeatureBtn');
 document.getElementById('buyFeatureLink').href = GUMROAD_URL;
 let featureTargetAdId = null;
 
-grid.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
   const fbtn = e.target.closest('.feature-link');
   if(!fbtn) return;
   featureTargetAdId = fbtn.dataset.featureId;
@@ -577,7 +640,38 @@ grid.addEventListener('click', (e) => {
   featureStatusMsg.className = 'status-msg';
   featureBackdrop.classList.add('open');
   featureCodeInput.focus();
+  await checkFeatureAvailability();
 });
+
+const availabilityMsg = document.getElementById('availabilityMsg');
+async function checkFeatureAvailability(){
+  availabilityMsg.textContent = 'Checking availability...';
+  availabilityMsg.className = 'availability-msg';
+
+  const { data, error } = await sb
+    .from('ads')
+    .select('featured_until')
+    .eq('featured', true)
+    .gt('featured_until', new Date().toISOString())
+    .order('featured_until', { ascending: true });
+
+  if(error){
+    availabilityMsg.textContent = 'Could not check availability — you can still buy a code.';
+    availabilityMsg.className = 'availability-msg';
+    return;
+  }
+
+  const activeCount = data ? data.length : 0;
+  if(activeCount < 3){
+    availabilityMsg.textContent = `✅ ${3 - activeCount} spot${3 - activeCount > 1 ? 's' : ''} available — your ad goes live instantly.`;
+    availabilityMsg.className = 'availability-msg open';
+  } else {
+    const nextFree = new Date(data[0].featured_until);
+    const hoursLeft = Math.max(1, Math.ceil((nextFree.getTime() - Date.now()) / 3600000));
+    availabilityMsg.textContent = `⏳ All 3 spots are taken. Next opening in ~${hoursLeft}h — buying now means you'll be queued for that spot.`;
+    availabilityMsg.className = 'availability-msg full';
+  }
+}
 
 document.getElementById('closeFeature').onclick = () => { featureBackdrop.classList.remove('open'); };
 featureBackdrop.addEventListener('click', e => { if(e.target === featureBackdrop) featureBackdrop.classList.remove('open'); });
@@ -593,12 +687,24 @@ async function activateFeatureCode(){
   featureStatusMsg.textContent = 'Checking...';
   featureStatusMsg.className = 'status-msg';
 
-  const { data: ok, error } = await sb.rpc('redeem_feature_code', { p_code: code, p_ad_id: featureTargetAdId });
+  const { data: result, error } = await sb.rpc('redeem_feature_code', { p_code: code, p_ad_id: featureTargetAdId });
   activateFeatureBtn.disabled = false;
 
-  if(error || !ok){
+  if(error){
+    featureStatusMsg.textContent = 'Something went wrong, try again.';
+    featureStatusMsg.className = 'status-msg err';
+    return;
+  }
+  if(result === 'invalid'){
     featureStatusMsg.textContent = 'Invalid or already-used code. Contact juryjeremy@gmail.com if this is a mistake.';
     featureStatusMsg.className = 'status-msg err';
+    return;
+  }
+  if(result === 'queued'){
+    featureStatusMsg.textContent = "⏳ All 3 sponsored spots are taken right now. Your ad is queued and will go live automatically as soon as one frees up — no need to do anything else.";
+    featureStatusMsg.className = 'status-msg ok';
+    await loadAds();
+    setTimeout(() => { featureBackdrop.classList.remove('open'); }, 2600);
     return;
   }
   featureStatusMsg.textContent = '🎉 Your ad is now featured for 7 days!';
