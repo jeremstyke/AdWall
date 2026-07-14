@@ -152,6 +152,24 @@
     font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.82rem; color:var(--ink); cursor:pointer;
   }
   .btn[disabled]{ opacity:0.6; cursor:not-allowed; }
+
+  .feature-modal{ max-width:380px; text-align:center; }
+  .feature-modal h2{ font-family:'Anton',sans-serif; font-size:1.6rem; margin:0 0 4px; }
+  .feature-modal .sub{ font-size:0.85rem; opacity:0.7; margin:0 0 20px; }
+  .feature-price{
+    display:flex; align-items:baseline; justify-content:center; gap:6px; margin-bottom:18px;
+  }
+  .feature-price .price-amount{ font-family:'Anton',sans-serif; font-size:2.4rem; color:#b8342a; }
+  .feature-price .price-period{ font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.85rem; opacity:0.7; }
+  .feature-divider{
+    display:flex; align-items:center; gap:10px; margin:22px 0 14px;
+    font-family:'Inter Tight',sans-serif; font-weight:600; font-size:0.78rem; opacity:0.6;
+  }
+  .feature-divider::before, .feature-divider::after{ content:''; flex:1; height:1px; background:rgba(0,0,0,0.15); }
+  .feature-modal label{ text-align:left; }
+  .feature-modal input[type=text]{ text-align:center; letter-spacing:0.5px; font-family:'Inter Tight',sans-serif; }
+  .feature-activate-btn{ width:100%; margin-top:12px; background:var(--ink); }
+  .feature-modal .status-msg{ margin-top:10px; }
   footer{
     text-align:center; padding:20px; font-size:0.75rem; opacity:0.6;
     font-family:'Inter Tight',sans-serif; display:flex; flex-direction:column; gap:6px;
@@ -233,6 +251,28 @@
       <p class="success-title">⏳ One ad per day</p>
       <p class="cta-text" id="limitMsg">You've already posted an ad in the last 24h. Come back later to post another.</p>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="featureBackdrop">
+  <div class="modal feature-modal">
+    <button class="close" id="closeFeature" aria-label="Close">&times;</button>
+    <h2>⭐ Feature this ad</h2>
+    <p class="sub">Pin it to the top of the wall for 7 days.</p>
+
+    <div class="feature-price">
+      <span class="price-amount">$5</span>
+      <span class="price-period">/ 7 days</span>
+    </div>
+
+    <a class="btn cta-btn" id="buyFeatureLink" href="#" target="_blank" rel="noopener sponsored">Buy a code on Gumroad →</a>
+
+    <div class="feature-divider"><span>Already have a code?</span></div>
+
+    <label for="featureCodeInput">Activation code</label>
+    <input type="text" id="featureCodeInput" placeholder="e.g. ADW-7F3K9X" autocomplete="off">
+    <button type="button" class="btn feature-activate-btn" id="activateFeatureBtn">Activate</button>
+    <p class="status-msg" id="featureStatusMsg"></p>
   </div>
 </div>
 
@@ -519,27 +559,55 @@ function highlightSharedAd(){
   setTimeout(() => card.classList.remove('highlighted'), 2500);
 }
 
-// Feature this ad — $5 / 7 days via Ko-fi, activated with a one-time code
+// Feature this ad — $5 / 7 days via Gumroad, activated with a one-time code
 const GUMROAD_URL = "https://jeremstyke.gumroad.com/l/Adwall-7-days";
-grid.addEventListener('click', async (e) => {
+const featureBackdrop = document.getElementById('featureBackdrop');
+const featureCodeInput = document.getElementById('featureCodeInput');
+const featureStatusMsg = document.getElementById('featureStatusMsg');
+const activateFeatureBtn = document.getElementById('activateFeatureBtn');
+document.getElementById('buyFeatureLink').href = GUMROAD_URL;
+let featureTargetAdId = null;
+
+grid.addEventListener('click', (e) => {
   const fbtn = e.target.closest('.feature-link');
   if(!fbtn) return;
-  const adId = fbtn.dataset.featureId;
+  featureTargetAdId = fbtn.dataset.featureId;
+  featureCodeInput.value = '';
+  featureStatusMsg.textContent = '';
+  featureStatusMsg.className = 'status-msg';
+  featureBackdrop.classList.add('open');
+  featureCodeInput.focus();
+});
 
-  const hasCode = confirm("Feature this ad for $5 / 7 days.\n\nOK = I already have a code\nCancel = take me to Gumroad to buy one (I'll message you your code within 24h)");
-  if(!hasCode){ window.open(GUMROAD_URL, '_blank'); return; }
+document.getElementById('closeFeature').onclick = () => { featureBackdrop.classList.remove('open'); };
+featureBackdrop.addEventListener('click', e => { if(e.target === featureBackdrop) featureBackdrop.classList.remove('open'); });
 
-  const code = prompt("Enter your feature code:");
-  if(!code) return;
-
-  const { data: ok, error } = await sb.rpc('redeem_feature_code', { p_code: code.trim(), p_ad_id: adId });
-  if(error || !ok){
-    alert("That code is invalid or already used. Contact juryjeremy@gmail.com if you think this is a mistake.");
+async function activateFeatureCode(){
+  const code = featureCodeInput.value.trim();
+  if(!code){
+    featureStatusMsg.textContent = 'Enter a code first.';
+    featureStatusMsg.className = 'status-msg err';
     return;
   }
-  alert("🎉 Your ad is now featured for 7 days!");
+  activateFeatureBtn.disabled = true;
+  featureStatusMsg.textContent = 'Checking...';
+  featureStatusMsg.className = 'status-msg';
+
+  const { data: ok, error } = await sb.rpc('redeem_feature_code', { p_code: code, p_ad_id: featureTargetAdId });
+  activateFeatureBtn.disabled = false;
+
+  if(error || !ok){
+    featureStatusMsg.textContent = 'Invalid or already-used code. Contact juryjeremy@gmail.com if this is a mistake.';
+    featureStatusMsg.className = 'status-msg err';
+    return;
+  }
+  featureStatusMsg.textContent = '🎉 Your ad is now featured for 7 days!';
+  featureStatusMsg.className = 'status-msg ok';
   await loadAds();
-});
+  setTimeout(() => { featureBackdrop.classList.remove('open'); }, 1400);
+}
+activateFeatureBtn.onclick = activateFeatureCode;
+featureCodeInput.addEventListener('keydown', e => { if(e.key === 'Enter') activateFeatureCode(); });
 
 // Submit form
 const form = document.getElementById('adForm');
