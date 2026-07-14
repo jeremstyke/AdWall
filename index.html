@@ -294,7 +294,7 @@
 
     <div id="successPanel" class="success-panel" style="display:none;">
       <p class="success-title">🎉 Your ad is live!</p>
-      <p class="share-tip">📢 Want to boost this ad? Share its 🔗 link with friends — the more people you send, the more free votes it gets!</p>
+      <p class="share-tip">📢 Want to boost this ad? Share its 🔗 link with friends — the more people you send, the more free votes it gets! Traffic exchanges like <a href="https://www.easyhits4u.com/?ref=juryjeremy" target="_blank" rel="noopener sponsored">EasyHits4U</a> work too.</p>
       <p class="cta-text">Building something for your business? <strong>Systeme.io</strong> lets you build a full sales funnel, email list, and online store — 100% free, no credit card needed.</p>
       <a class="btn cta-btn" href="https://cutt.ly/Pyeso1Zh" target="_blank" rel="noopener sponsored">Try Systeme.io free →</a>
       <button type="button" class="link-btn" id="postAnother">Post another ad</button>
@@ -818,6 +818,7 @@ form.addEventListener('submit', async (e) => {
     await loadAds();
   } catch(err){
     console.error(err);
+    alert('Publish error: ' + JSON.stringify(err));
     statusMsg.textContent = T.errGeneric;
     statusMsg.className = 'status-msg err';
   } finally {
