@@ -125,6 +125,9 @@
     border-radius:4px; cursor:pointer; font-size:0.7rem; line-height:1; display:flex; align-items:center;
     justify-content:center; padding:0;
   }
+  .sbtn-labeled{
+    width:auto; padding:0 8px; gap:3px; font-family:'Inter Tight',sans-serif; font-weight:700; font-size:0.66rem;
+  }
   .card.highlighted{
     outline:3px solid var(--pin-blue); outline-offset:2px; transform:rotate(0deg) scale(1.04); z-index:3;
   }
@@ -231,7 +234,7 @@
 </header>
 
 <main>
-  <p class="reminder">💡 Come back every day and vote for your favorite ads — it helps them stay on top! (1 vote per ad every 24h) · Share your ad's 🔗 link — every new visitor gives it a free upvote!</p>
+  <p class="reminder">💡 Vote once a day. Share your link — get free upvotes.</p>
   <div class="toolbar">
     <div class="group">
       <label style="margin:0;font-size:0.7rem;" id="filterLabelText">Showing</label>
@@ -532,7 +535,7 @@ async function loadAds(){
         <button class="vbtn up ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="1" ${onCooldown ? 'disabled' : ''} aria-label="Upvote" title="${onCooldown ? cooldownMsg : ''}">▲</button>
         <span class="vcount" data-count-for="${ad.id}">${ad.votes ?? 0}</span>
         <button class="vbtn down ${onCooldown ? 'voted' : ''}" data-id="${ad.id}" data-dir="-1" ${onCooldown ? 'disabled' : ''} aria-label="Downvote" title="${onCooldown ? cooldownMsg : ''}">▼</button>
-        <button class="sbtn" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share" title="Share this ad — new visitors who open it give it a free upvote">🔗</button>
+        <button class="sbtn sbtn-labeled" data-share-id="${ad.id}" data-share-name="${(ad.advertiser_name || 'this ad').replace(/"/g,'')}" aria-label="Share" title="Share this ad — new visitors who open it give it a free upvote">🔗 Share</button>
       </div>
       <button class="feature-link" data-feature-id="${ad.id}">⭐ Feature this ad — $5/7 days</button>
     `;
